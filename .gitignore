@@ -109,3 +109,4 @@ bot-env/
 .DS_Store
 .gitattributes
 *.pyc
+test.py
