@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 
 setup(name="aiotrello",
-	version="0.0.2",
+	version="0.0.3",
 	description="Async Trello library",
 	url="https://github.com/bloxlink/aiotrello",
 	keywords=["async", "trello"],
