@@ -3,7 +3,7 @@
 Async Trello Python library
 ### Installation
 
-Install with [PyPi](https://pypi.org/)
+Install with [pip](https://pypi.org/project/pip/)
 
 ```sh
 $ pip install aiotrello
