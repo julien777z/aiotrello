@@ -1,10 +1,8 @@
 from setuptools import setup, find_packages
 
-with open("README.md", "r") as f:
-	long_description = f.read()
 
 setup(name="aiotrello",
-	version="0.0.1",
+	version="0.0.2",
 	description="Async Trello library",
 	url="https://github.com/bloxlink/aiotrello",
 	keywords=["async", "trello"],
@@ -18,7 +16,7 @@ setup(name="aiotrello",
 		"Programming Language :: Python :: 3.7",
 		"Operating System :: OS Independent"
 	],
-	long_description=long_description,
+	long_description=open("README.md", "r").read(),
 	long_description_content_type="text/markdown",
 	zip_safe=False
 )
