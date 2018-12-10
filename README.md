@@ -1,7 +1,7 @@
 # aiotrello
 
 Async Trello Python library
-### Installation
+## Installation
 
 Install with [pip](https://pypi.org/project/pip/)
 
@@ -9,7 +9,7 @@ Install with [pip](https://pypi.org/project/pip/)
 $ pip install aiotrello
 ```
 
-### Examples
+## Examples
 
 ```py
 import asyncio; loop = asyncio.get_event_loop()
@@ -57,6 +57,7 @@ finally:
 
 ```
 
-### Support
+## Support
 
 Join our [Discord Server](https://discord.gg/hK9DpQQ)
+
