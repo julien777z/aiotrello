@@ -9,17 +9,20 @@ class Board:
 	def __init__(self, json, trello_instance=None):
 		self.id = json["id"]
 		self.name = json["name"]
-		self.closed = json["closed"]
-		self.id_organization = json["idOrganization"]
-		self.pinned = json["pinned"]
-		self.url = json["url"]
-		self.short_url = json["shortUrl"]
-		self.prefs = json["prefs"]
-		self.label_names = json["labelNames"]
+		self.closed = json.get("closed")
+		self.id_organization = json.get("idOrganization")
+		self.pinned = json.get("pinned")
+		self.url = json.get("url")
+		self.short_url = json.get("shortUrl")
+		self.prefs = json.get("prefs")
+		self.label_names = json.get("labelNames")
 		self.starred = json.get("starred", False)
 		self.limits = json.get("limits", [])
 		self.memberships = json.get("memberships", [])
+		self._members = json.get("members")
+
 		self.lists = []
+		self.members = []
 
 		self.synced = False
 
@@ -27,9 +30,8 @@ class Board:
 		self.trello_instance = trello_instance
 
 
-	async def sync(self, json=None):
+	async def sync(self, card_limit=None, json=None):
 		self.synced = False
-		self.lists.clear()
 
 		if not json:
 			json = await do_request(
@@ -52,9 +54,10 @@ class Board:
 		self.starred = json.get("starred", False)
 		self.limits = json.get("limits", [])
 		self.memberships = json.get("memberships", [])
+
 		self.lists.clear()
 
-		await self.load_lists()
+		await self.load_lists(card_limit)
 
 		self.synced = True
 
@@ -82,7 +85,7 @@ class Board:
 
 		return new_list
 
-	async def load_lists(self, **kwargs):
+	async def load_lists(self, card_limit=None, **kwargs):
 		params = kwargs or {"cards": "open"}
 		json = await do_request(
 			"GET",
@@ -94,7 +97,7 @@ class Board:
 		)
 
 		for trello_list in json:
-			new_list = List(trello_list, trello_list.get("cards"), self)
+			new_list = List(trello_list, trello_list.get("cards", [])[0:card_limit], self)
 
 			if new_list not in self.lists:
 				self.lists.append(new_list)
@@ -118,7 +121,7 @@ class Board:
 			pass
 
 	@staticmethod
-	async def from_board(board, key=None, token=None, loop=None, trello_instance=None):
+	async def from_board(board, key=None, token=None, loop=None, card_limit=None, trello_instance=None):
 		board_id = Board.resolve_id(board)
 
 		if trello_instance and (not key or not token):
@@ -137,7 +140,7 @@ class Board:
 			board.trello_instance = trello_instance
 			board.parent = trello_instance
 
-		await board.sync()
+		await board.sync(card_limit=card_limit)
 
 		return board
 
@@ -208,4 +211,4 @@ class Board:
 		return str(self)
 
 	def __eq__(self, other):
-		return self.id == other.id
+		return hasattr(other, "id") and self.id == other.id

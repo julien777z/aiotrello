@@ -1,5 +1,4 @@
-from . import Board
-from . import List
+from . import Board, List
 from ..misc.constants import API_URL
 from ..utils.request import do_request
 
@@ -171,4 +170,4 @@ class Card:
 		return str(self)
 
 	def __eq__(self, other):
-		return self.id == other.id
+		return hasattr(other, "id") and self.id == other.id

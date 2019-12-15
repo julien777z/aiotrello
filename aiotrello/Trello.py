@@ -31,7 +31,8 @@ class Trello:
 			whenever possible. False = always make a new HTTP request.
 			NOTE: this is currently not implemented.
 
-		Note: if a key and token is not provided, you may only use the static methods of this package.
+		Note: if a key and token is not provided, you may only use the static methods as well as a few methods which don't
+			  require authentication, such as get_board().
 		"""
 
 		self.key = key
@@ -46,25 +47,25 @@ class Trello:
 		else:
 			self.session = aiohttp.ClientSession(loop=loop)
 
-	async def get_board(self, a):
+	async def get_board(self, a, card_limit=None):
 		if callable(a):
-			for board in await self.get_boards():
+			for board in await self.get_boards(card_limit):
 				if a(board):
 					return board
 		else:
-			board = await Board.from_board(a, trello_instance=self)
+			board = await Board.from_board(a, card_limit=card_limit, trello_instance=self)
 
 			return board
 
 
-	async def get_boards(self):
+	async def get_boards(self, card_limit=None):
 		if not self.synced:
-			await self.sync()
+			await self.sync(card_limit=card_limit)
 
 		return list(self.boards)
 
 
-	async def sync(self):
+	async def sync(self, card_limit=None):
 		self.boards.clear()
 
 		boards = await do_request(
@@ -73,14 +74,15 @@ class Trello:
 			key=self.key,
 			token=self.token,
 			loop=self.loop,
-			session=self.session
+			session=self.session,
+			params={"members": "all"}
 		)
 
 		for raw_board in boards:
 			board = Board(raw_board, self)
 
 			if board not in self.boards:
-				await board.sync()
+				await board.sync(card_limit)
 				self.boards.append(board)
 
 		if self._use_cache:

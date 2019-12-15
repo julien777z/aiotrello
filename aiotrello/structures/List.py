@@ -59,7 +59,7 @@ class List:
 				card = Card(_card, self)
 				self.cards.append(card)
 
-	async def sync(self, data=None, cards=None):
+	async def sync(self, data=None, cards=None, **kwargs):
 		self.synced = False
 
 		if not data:
@@ -89,14 +89,15 @@ class List:
 				key=self.trello_instance.key,
 				token=self.trello_instance.token,
 				loop=self.trello_instance.loop,
+				params=kwargs
 			)
 
 		self._add_cards()
 		self.synced = True
 
-	async def get_cards(self):
+	async def get_cards(self, limit=None, **kwargs):
 		if not self.synced:
-			await self.sync()
+			await self.sync(limit=limit, **kwargs)
 
 		return list(self.cards)
 
@@ -112,14 +113,13 @@ class List:
 		if not self.synced:
 			await self.sync()
 
-		params = {"value": True}
 		await do_request(
 			"PUT",
 			f"{API_URL}/lists/{self.id}/closed",
 			key=self.trello_instance.key,
 			token=self.trello_instance.token,
 			loop=self.trello_instance.loop,
-			params=params
+			params={"value": True}
 		)
 
 		self.parent.lists.remove(self)
@@ -150,6 +150,7 @@ class List:
 			loop=self.trello_instance.loop,
 			params=kwargs
 		)
+
 		await self.sync()
 
 	async def create_card(self, name=None, desc=None, **kwargs):
@@ -171,6 +172,7 @@ class List:
 		)
 
 		card = Card(card_json, self)
+
 		self._cards.append(card_json)
 		self.cards.append(card)
 
@@ -191,4 +193,4 @@ class List:
 		return str(self)
 
 	def __eq__(self, other):
-		return self.id == other.id
+		return hasattr(other, "id") and self.id == other.id
