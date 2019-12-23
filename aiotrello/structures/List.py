@@ -12,21 +12,20 @@ class List:
 		self.parent = board
 		self.board = board
 
-		self._data = data
-
 		self.name = data.get("name")
 		self.idBoard = data.get("idBoard")
 		self.pos = data.get("pos")
 		self.subscribed = data.get("subscribed")
 		self.id = data["id"]
 
-		self._cards = cards or []
 		self.cards = []
 
 		self.synced = False
 		self.trello_instance = getattr(board, "trello_instance", None)
 
-		self._add_cards()
+		self._add_cards(cards)
+
+		self.last_card_limit = None
 
 	@staticmethod
 	def resolve_id(list):
@@ -53,13 +52,13 @@ class List:
 	"""
 
 
-	def _add_cards(self):
-		if self._cards:
-			for _card in self._cards:
+	def _add_cards(self, cards):
+		if cards:
+			for _card in cards:
 				card = Card(_card, self)
 				self.cards.append(card)
 
-	async def sync(self, data=None, cards=None, **kwargs):
+	async def sync(self, data=None, card_limit=None, cards=None, **kwargs):
 		self.synced = False
 
 		if not data:
@@ -76,14 +75,17 @@ class List:
 		self.pos = data.get("pos")
 		self.subscribed = data.get("subscribed")
 		self.id = data["id"]
-		self._data = data
 		self.cards.clear()
-		self._cards.clear()
+
+		card_data = None
+
+		if card_limit:
+			kwargs["limit"] = card_limit
 
 		if cards:
-			self._cards = cards
+			card_data = cards
 		else:
-			self._cards = await do_request(
+			card_data = await do_request(
 				"GET",
 				f"{API_URL}/lists/{self.id}/cards",
 				key=self.trello_instance.key,
@@ -92,18 +94,19 @@ class List:
 				params=kwargs
 			)
 
-		self._add_cards()
+		self._add_cards(card_data)
 		self.synced = True
+		self.last_card_limit = card_limit
 
 	async def get_cards(self, limit=None, **kwargs):
 		if not self.synced:
-			await self.sync(limit=limit, **kwargs)
+			await self.sync(card_limit=limit, **kwargs)
 
 		return list(self.cards)
 
 	async def get_card(self, predicate):
 		if not self.synced:
-			await self.sync()
+			await self.sync(card_limit=self.last_card_limit)
 
 		for card in self.cards:
 			if predicate(card):
@@ -111,7 +114,7 @@ class List:
 
 	async def archive(self):
 		if not self.synced:
-			await self.sync()
+			await self.sync(card_limit=self.last_card_limit)
 
 		await do_request(
 			"PUT",
@@ -126,7 +129,7 @@ class List:
 
 	async def restore(self):
 		if not self.synced:
-			await self.sync()
+			await self.sync(card_limit=self.last_card_limit)
 
 		params = {"value": False}
 		await do_request(
@@ -151,7 +154,7 @@ class List:
 			params=kwargs
 		)
 
-		await self.sync()
+		await self.sync(card_limit=self.last_card_limit)
 
 	async def create_card(self, name=None, desc=None, **kwargs):
 		kwargs["idList"] = self.id
@@ -173,12 +176,12 @@ class List:
 
 		card = Card(card_json, self)
 
-		self._cards.append(card_json)
 		self.cards.append(card)
 
 		return card
 
 	new_card = add_card = create_card
+	delete = archive
 
 	@staticmethod
 	async def from_board(board, key=None, token=None):

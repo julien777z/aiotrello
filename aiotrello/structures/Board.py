@@ -6,9 +6,10 @@ from ..utils.request import do_request
 compiled_board_regex = re.compile(r"b/(.*)/")
 
 class Board:
-	def __init__(self, json, trello_instance=None):
+	def __init__(self, json, card_limit=None, trello_instance=None):
 		self.id = json["id"]
 		self.name = json["name"]
+		self.short_link = json.get("shortLink")
 		self.closed = json.get("closed")
 		self.id_organization = json.get("idOrganization")
 		self.pinned = json.get("pinned")
@@ -28,6 +29,8 @@ class Board:
 
 		self.parent = trello_instance
 		self.trello_instance = trello_instance
+
+		self.last_card_limit = card_limit
 
 
 	async def sync(self, card_limit=None, json=None):
@@ -60,10 +63,11 @@ class Board:
 		await self.load_lists(card_limit)
 
 		self.synced = True
+		self.last_card_limit = card_limit
 
 	async def create_list(self, name, **kwargs):
 		if not self.synced:
-			await self.sync()
+			await self.sync(self.last_card_limit)
 
 		kwargs["name"] = name
 		kwargs["idBoard"] = self.id
@@ -79,7 +83,7 @@ class Board:
 
 		new_list = List(json, [], self)
 
-		await new_list.sync()
+		await new_list.sync(new_list.last_card_limit)
 
 		self.lists.append(new_list)
 
@@ -116,9 +120,6 @@ class Board:
 				return board_id.group(1)
 
 			return board
-		else:
-			# raise TrelloRuntimeError? ..or TrelloUsageError
-			pass
 
 	@staticmethod
 	async def from_board(board, key=None, token=None, loop=None, card_limit=None, trello_instance=None):
@@ -146,7 +147,7 @@ class Board:
 
 	async def delete(self):
 		if not self.synced:
-			await self.sync()
+			await self.sync(self.last_card_limit)
 
 		await do_request(
 			"DELETE",
@@ -160,13 +161,13 @@ class Board:
 
 	async def get_lists(self):
 		if not self.synced:
-			await self.sync()
+			await self.sync(self.last_card_limit)
 
 		return list(self.lists)
 
 	async def get_list(self, predicate):
 		if not self.synced:
-			await self.sync()
+			await self.sync(self.last_card_limit)
 
 		for list in self.lists:
 			if predicate(list):
@@ -174,7 +175,7 @@ class Board:
 
 	async def get_field(self, field):
 		if not self.synced:
-			await self.sync()
+			await self.sync(self.last_card_limit)
 
 		if hasattr(self, field):
 			return getattr(self, field)
@@ -202,7 +203,7 @@ class Board:
 			params=kwargs
 		)
 
-		await self.sync()
+		await self.sync(self.last_card_limit)
 
 	def __str__(self):
 		return f"Board: {self.name} ({self.id})"
