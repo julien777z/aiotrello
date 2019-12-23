@@ -7,8 +7,6 @@ class Card:
 		self.parent = list
 		self.list = list
 
-		self._data = data
-
 		self.id = data["id"]
 		self.name = data["name"]
 		self.closed = data["closed"]
@@ -44,9 +42,6 @@ class Card:
 				loop=self.trello_instance.loop,
 			)
 
-		old_data = self._data
-		self._data = data
-
 		self.id = data["id"]
 		self.name = data["name"]
 		self.closed = data["closed"]
@@ -64,24 +59,29 @@ class Card:
 
 		if self.parent:
 			if not self.parent.synced:
-				await self.parent.sync()
+				await self.parent.sync(card_limit=self.parent.last_card_limit)
 
 			if self.id_board != self.parent.id:
 				# card changed lists
 
-				if old_data in self.parent._cards:
+				if self in self.parent.cards:
 					self.parent.cards.remove(self)
-					self.parent._cards.remove(old_data)
 
 					if hasattr(self.parent, "parent") and self.trello_instance:
-						board = await self.trello_instance.get_board(lambda b: b.id == self.id_board)
+						board = await self.trello_instance.get_board(self.id_board)
+
 						if not board:
-							await self.trello_instance.sync()
+							await self.trello_instance.sync(card_limit=self.trello_instance._last_card_limit)
 
-						new_list = await board.get_list(lambda l: l.id == self.id_list)
+							board = self.trello_instance.boards.get(self.id_board)
 
-						new_list.cards.append(self)
-						new_list._cards.append(self._data)
+						if board:
+							new_list = await board.get_list(lambda l: l.id == self.id_list)
+
+							if new_list:
+								new_list.cards.append(self)
+								self.parent = new_list
+
 
 		self.synced = True
 
@@ -105,7 +105,8 @@ class Card:
 			params=params
 		)
 
-		await self.sync()
+		self.list.cards.remove(self)
+		list.cards.append(self)
 
 	async def delete(self):
 		await do_request(
@@ -117,9 +118,6 @@ class Card:
 		)
 		if self in self.parent.cards:
 			self.parent.cards.remove(self)
-
-		if self._data in self.parent._cards:
-			self.parent._cards.remove(self._data)
 
 	async def edit(self, **kwargs):
 		await do_request(
@@ -135,17 +133,11 @@ class Card:
 		if self in self.parent.cards:
 			self.parent.cards.remove(self)
 
-		if self._data in self.parent._cards:
-			self.parent._cards.remove(self._data)
-
 		await self.edit(closed=True)
 
 	async def restore(self):
 		if self not in self.parent.cards:
 			self.parent.cards.append(self)
-
-		if self._data not in self.parent._cards:
-			self.parent._cards.append(self._data)
 
 		await self.edit(closed=False)
 
