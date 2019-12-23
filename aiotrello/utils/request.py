@@ -6,6 +6,8 @@ async def do_request(method, url, params=None, key=None, token=None, loop=None, 
 	if not loop:
 		loop = asyncio.get_event_loop()
 
+	params = params or {}
+
 	close_session = False
 	if not session:
 		session = aiohttp.ClientSession(loop=loop)
@@ -14,6 +16,10 @@ async def do_request(method, url, params=None, key=None, token=None, loop=None, 
 	if key and token:
 		params["key"] = key
 		params["token"] = token
+
+	for k, v in params.items():
+		if isinstance(v, bool):
+			params[k] = "true" if v else "false"
 
 	async with session.request(method, url, params=params) as response:
 		if response.status == 400:
