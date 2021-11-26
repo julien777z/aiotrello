@@ -4,10 +4,10 @@ from setuptools import setup, find_packages
 setup(name="aiotrello",
 	version="0.0.5",
 	description="Async Trello library",
-	url="https://github.com/bloxlink/aiotrello",
+	url="https://github.com/zomien/aiotrello",
 	keywords=["async", "trello"],
-	author="tigerism",
-	author_email="admin@blox.link",
+	author="Julien Kmec",
+	author_email="me@julien.dev",
 	license="MIT",
 	packages=find_packages(),
 	classifiers=[
