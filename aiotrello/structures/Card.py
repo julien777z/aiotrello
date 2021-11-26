@@ -40,6 +40,7 @@ class Card:
 				key=self.trello_instance.key,
 				token=self.trello_instance.token,
 				loop=self.trello_instance.loop,
+				#session=self.trello_instance.session,
 			)
 
 		self.id = data["id"]
@@ -102,6 +103,7 @@ class Card:
 			key=self.trello_instance.key,
 			token=self.trello_instance.token,
 			loop=self.trello_instance.loop,
+			#session=self.trello_instance.session,
 			params=params
 		)
 
@@ -115,6 +117,7 @@ class Card:
 			key=self.trello_instance.key,
 			token=self.trello_instance.token,
 			loop=self.trello_instance.loop,
+			#session=self.trello_instance.session,
 		)
 		if self in self.parent.cards:
 			self.parent.cards.remove(self)
@@ -126,6 +129,7 @@ class Card:
 			key=self.trello_instance.key,
 			token=self.trello_instance.token,
 			loop=self.trello_instance.loop,
+			#session=self.trello_instance.session,
 			params=kwargs
 		)
 
@@ -149,6 +153,7 @@ class Card:
 			key=self.trello_instance.key,
 			token=self.trello_instance.token,
 			loop=self.trello_instance.loop,
+			#session=self.trello_instance.session,
 			params={"text": text}
 		)
 

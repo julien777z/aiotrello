@@ -8,10 +8,10 @@ async def do_request(method, url, params=None, key=None, token=None, loop=None, 
 
 	params = params or {}
 
-	close_session = False
-	if not session:
-		session = aiohttp.ClientSession(loop=loop)
-		close_session = True
+	#close_session = False
+	#if not session:
+	#	session = aiohttp.ClientSession(loop=loop)
+	#	close_session = True
 
 	if key and token:
 		params["key"] = key
@@ -21,19 +21,24 @@ async def do_request(method, url, params=None, key=None, token=None, loop=None, 
 		if isinstance(v, bool):
 			params[k] = "true" if v else "false"
 
-	async with session.request(method, url, params=params) as response:
-		if response.status == 400:
-			raise exceptions.TrelloBadRequest(response)
-		elif response.status == 401:
-			raise exceptions.TrelloUnauthorized(response)
-		elif response.status == 404:
-			raise exceptions.TrelloNotFound(response)
-		elif response.status != 200:
-			raise exceptions.TrelloHttpError(response)
+	try:
+		async with aiohttp.ClientSession() as session:
+			async with session.request(method, url, params=params) as response:
+				if response.status == 400:
+					raise exceptions.TrelloBadRequest(response)
+				elif response.status == 401:
+					raise exceptions.TrelloUnauthorized(response)
+				elif response.status == 404:
+					raise exceptions.TrelloNotFound(response)
+				elif response.status != 200:
+					raise exceptions.TrelloHttpError(response)
 
-		json = await response.json()
+				json = await response.json()
 
-		if close_session:
-			await session.close()
+		#if close_session:
+		#	await session.close()
 
-		return json
+			return json
+
+	except asyncio.TimeoutError:
+		return None

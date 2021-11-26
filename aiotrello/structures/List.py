@@ -68,6 +68,7 @@ class List:
 				key=self.trello_instance.key,
 				token=self.trello_instance.token,
 				loop=self.trello_instance.loop,
+				#session=self.trello_instance.session,
 			)
 
 		self.name = data.get("name")
@@ -91,6 +92,7 @@ class List:
 				key=self.trello_instance.key,
 				token=self.trello_instance.token,
 				loop=self.trello_instance.loop,
+				#session=self.trello_instance.session,
 				params=kwargs
 			)
 
@@ -122,6 +124,7 @@ class List:
 			key=self.trello_instance.key,
 			token=self.trello_instance.token,
 			loop=self.trello_instance.loop,
+			#session=self.trello_instance.session,
 			params={"value": True}
 		)
 
@@ -138,6 +141,7 @@ class List:
 			key=self.trello_instance.key,
 			token=self.trello_instance.token,
 			loop=self.trello_instance.loop,
+			#session=self.trello_instance.session,
 			params=params
 		)
 
@@ -151,6 +155,7 @@ class List:
 			key=self.trello_instance.key,
 			token=self.trello_instance.token,
 			loop=self.trello_instance.loop,
+			#session=self.trello_instance.session,
 			params=kwargs
 		)
 
@@ -170,7 +175,7 @@ class List:
 			key=self.trello_instance.key,
 			token=self.trello_instance.token,
 			loop=self.trello_instance.loop,
-			session=self.trello_instance.session,
+			#session=self.trello_instance.session,
 			params=kwargs
 		)
 

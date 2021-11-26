@@ -6,11 +6,12 @@ from ..utils.request import do_request
 compiled_board_regex = re.compile(r"b/(.*)/")
 
 class Board:
-	def __init__(self, json, card_limit=None, trello_instance=None):
+	def __init__(self, json, card_limit=None, list_limit=None, trello_instance=None):
 		self.id = json["id"]
 		self.name = json["name"]
 		self.short_link = json.get("shortLink")
 		self.closed = json.get("closed")
+		self.desc = json.get("desc")
 		self.id_organization = json.get("idOrganization")
 		self.pinned = json.get("pinned")
 		self.url = json.get("url")
@@ -31,9 +32,10 @@ class Board:
 		self.trello_instance = trello_instance
 
 		self.last_card_limit = card_limit
+		self.last_list_limit = list_limit
 
 
-	async def sync(self, card_limit=None, json=None):
+	async def sync(self, card_limit=None, list_limit=None, json=None):
 		self.synced = False
 
 		if not json:
@@ -43,6 +45,7 @@ class Board:
 				key=self.trello_instance.key,
 				token=self.trello_instance.token,
 				loop=self.trello_instance.loop,
+				#session=self.trello_instance.session,
 			)
 
 		self.id = json["id"]
@@ -60,14 +63,15 @@ class Board:
 
 		self.lists.clear()
 
-		await self.load_lists(card_limit)
+		await self.load_lists(card_limit, list_limit)
 
 		self.synced = True
 		self.last_card_limit = card_limit
+		self.last_list_limit = list_limit
 
 	async def create_list(self, name, **kwargs):
 		if not self.synced:
-			await self.sync(self.last_card_limit)
+			await self.sync(self.last_card_limit, self.last_list_limit)
 
 		kwargs["name"] = name
 		kwargs["idBoard"] = self.id
@@ -78,6 +82,7 @@ class Board:
 			key=self.trello_instance.key,
 			token=self.trello_instance.token,
 			loop=self.trello_instance.loop,
+			#session=self.trello_instance.session,
 			params=kwargs
 		)
 
@@ -89,7 +94,7 @@ class Board:
 
 		return new_list
 
-	async def load_lists(self, card_limit=None, **kwargs):
+	async def load_lists(self, card_limit=None, list_limit=None, **kwargs):
 		params = kwargs or {"cards": "open"}
 		json = await do_request(
 			"GET",
@@ -97,11 +102,19 @@ class Board:
 			key=self.trello_instance.key,
 			token=self.trello_instance.token,
 			loop=self.trello_instance.loop,
+			#session=self.trello_instance.session,
 			params=params
 		)
 
+		added_to = 0
+
 		for trello_list in json:
-			new_list = List(trello_list, trello_list.get("cards", [])[0:card_limit], self)
+			if list_limit and list_limit <= added_to:
+				break
+
+			added_to += 1
+
+			new_list = List(trello_list, trello_list.get("cards", [])[:card_limit], self)
 
 			if new_list not in self.lists:
 				self.lists.append(new_list)
@@ -122,7 +135,7 @@ class Board:
 			return board
 
 	@staticmethod
-	async def from_board(board, key=None, token=None, loop=None, card_limit=None, trello_instance=None):
+	async def from_board(board, key=None, token=None, loop=None, card_limit=None, list_limit=None, trello_instance=None):
 		board_id = Board.resolve_id(board)
 
 		if trello_instance and (not key or not token):
@@ -135,19 +148,19 @@ class Board:
 			key=key,
 			token=token,
 			loop=loop,
-		))
+		), list_limit=list_limit)
 
 		if trello_instance:
 			board.trello_instance = trello_instance
 			board.parent = trello_instance
 
-		await board.sync(card_limit=card_limit)
+		await board.sync(card_limit=card_limit, list_limit=list_limit)
 
 		return board
 
 	async def delete(self):
 		if not self.synced:
-			await self.sync(self.last_card_limit)
+			await self.sync(self.last_card_limit, self.last_list_limit)
 
 		await do_request(
 			"DELETE",
@@ -155,19 +168,20 @@ class Board:
 			key=self.trello_instance.key,
 			token=self.trello_instance.token,
 			loop=self.trello_instance.loop,
+			#session=self.trello_instance.session,
 		)
 
 		self.trello_instance.boards.remove(self)
 
 	async def get_lists(self):
 		if not self.synced:
-			await self.sync(self.last_card_limit)
+			await self.sync(self.last_card_limit, self.last_list_limit)
 
 		return list(self.lists)
 
 	async def get_list(self, predicate):
 		if not self.synced:
-			await self.sync(self.last_card_limit)
+			await self.sync(self.last_card_limit, self.last_list_limit)
 
 		for list in self.lists:
 			if predicate(list):
@@ -175,7 +189,7 @@ class Board:
 
 	async def get_field(self, field):
 		if not self.synced:
-			await self.sync(self.last_card_limit)
+			await self.sync(self.last_card_limit, self.last_list_limit)
 
 		if hasattr(self, field):
 			return getattr(self, field)
@@ -186,6 +200,7 @@ class Board:
 				key=self.trello_instance.key,
 				token=self.trello_instance.token,
 				loop=self.trello_instance.loop,
+				#session=self.trello_instance.session,
 			)
 
 			if field_json:
@@ -200,10 +215,11 @@ class Board:
 			key=self.trello_instance.key,
 			token=self.trello_instance.token,
 			loop=self.trello_instance.loop,
+			#session=self.trello_instance.session,
 			params=kwargs
 		)
 
-		await self.sync(self.last_card_limit)
+		await self.sync(self.last_card_limit, self.last_list_limit)
 
 	def __str__(self):
 		return f"Board: {self.name} ({self.id})"

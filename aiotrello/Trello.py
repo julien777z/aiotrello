@@ -12,7 +12,7 @@ class Trello:
             key=None,
             token=None,
             loop=asyncio.get_event_loop(),
-            session=None,
+            #session=None,
             cache_mode="full"
         ):
         """Initializes a new Trello client.
@@ -45,17 +45,19 @@ class Trello:
         self._cache_mode = cache_mode
         self._last_card_limit = None
 
+        """
         if session:
             self.session = session
         else:
             self.session = aiohttp.ClientSession(loop=loop)
+        """
 
-    async def get_board(self, a, card_limit=None):
+    async def get_board(self, a, card_limit=None, list_limit=None):
         if not self.synced:
-            await self.sync(card_limit=card_limit)
+            await self.sync(card_limit=card_limit, list_limit=list_limit)
 
         if callable(a):
-            for board in await self.get_boards(card_limit):
+            for board in await self.get_boards(card_limit, list_limit):
                 if a(board):
                     return board
         else:
@@ -70,46 +72,46 @@ class Trello:
                 if board_id in (board.id, board.short_link):
                     return board
 
-            board = await Board.from_board(a, card_limit=card_limit, trello_instance=self)
+            board = await Board.from_board(a, card_limit=card_limit, list_limit=list_limit, trello_instance=self)
 
             return board
 
 
-    async def get_boards(self, card_limit=None):
+    async def get_boards(self, card_limit=None, list_limit=None):
         if not self.synced:
-            await self.sync(card_limit=card_limit)
+            await self.sync(card_limit=card_limit, list_limit=None)
 
         if self._cache_mode == "full":
             for board in self.boards.values():
                 yield board
         else:
-            async for board in self._get_boards(card_limit=card_limit):
+            async for board in self._get_boards(card_limit=card_limit, list_limit=list_limit):
                 yield board
 
-    async def _get_boards(self, card_limit=None):
+    async def _get_boards(self, card_limit=None, list_limit=None):
         boards = await do_request(
             "GET",
             f"{API_URL}/members/me/boards",
             key=self.key,
             token=self.token,
             loop=self.loop,
-            session=self.session,
+            #session=self.session,
             params={"members": "all"}
         )
 
         for raw_board in boards:
             board = Board(raw_board, trello_instance=self)
-            await board.sync(card_limit)
+            await board.sync(card_limit, list_limit)
 
             yield board
 
-    async def sync(self, card_limit=None):
+    async def sync(self, card_limit=None, list_limit=None):
         self._last_card_limit = card_limit
 
         if self._cache_mode == "full":
             self.boards.clear()
 
-            async for board in self._get_boards(card_limit):
+            async for board in self._get_boards(card_limit, list_limit):
                 self.boards[board.id] = board
 
             self.synced = True
@@ -123,7 +125,7 @@ class Trello:
             token=self.token,
             loop=self.loop,
             params=kwargs,
-            session=self.session
+            #session=self.session
         ), trello_instance=self)
 
         if self._cache_mode in ("full", "some"):
