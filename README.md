@@ -56,8 +56,3 @@ finally:
 
 
 ```
-
-## Support
-
-Join our [Discord Server](https://discord.gg/hK9DpQQ)
-
